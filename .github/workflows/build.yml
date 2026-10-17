@@ -1,0 +1,61 @@
+
+name: Build BlockHost APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: unzip -q BlockHostStandalone-phone-build.zip
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Prepare Gradle wrapper
+        working-directory: BlockHostStandalone
+        run: |
+          chmod +x gradlew setup-wrapper.sh
+          bash setup-wrapper.sh
+
+      - name: Build APK
+        working-directory: BlockHostStandalone
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Verify APK and generate checksum
+        working-directory: BlockHostStandalone
+        run: |
+          set -e
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          sha256sum "$APK" > app/build/outputs/apk/debug/SHA256SUMS.txt
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BlockHostStandalone-debug-apk
+          path: |
+            BlockHostStandalone/app/build/outputs/apk/debug/app-debug.apk
+            BlockHostStandalone/app/build/outputs/apk/debug/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+          
