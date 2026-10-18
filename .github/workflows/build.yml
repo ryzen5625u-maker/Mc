@@ -52,8 +52,11 @@ jobs:
       - name: Prepare Gradle wrapper
         working-directory: BlockHostStandalone
         run: |
+          set -euxo pipefail
+          ls -la
+          ls -la gradle/wrapper
           chmod +x gradlew setup-wrapper.sh
-          bash setup-wrapper.sh
+          bash -x setup-wrapper.sh
 
       - name: Build APK
         working-directory: BlockHostStandalone
